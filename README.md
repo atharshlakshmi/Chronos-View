@@ -121,6 +121,16 @@ Crop settings (folders, size, field of view, view angles, pitch) live in the `"c
 ### TO DO
 Steps for depth maps, relighting (baseline, ControlNet, IC-Light), evaluation and comparison images are still in progress. This section will be updated soon.
 
+### Member 3: IC-Light relighting (GPU required)
+Use [notebooks/ic_light.ipynb](notebooks/ic_light.ipynb) in Google Colab with a GPU runtime. The notebook keeps IC-Light's older, pinned Diffusers dependencies separate from the shared environment.
+
+1. Run Cell 1 to clone the official model and install the notebook's pinned dependencies.
+2. In Cell 2, upload exactly `data/crops/shattuck_downtown_2025-03/view_000.png` as `view_000.png`.
+3. Run Cells 3–5. They use the shared prompt and seed 42, then save a relit image, a before/after panel, settings, findings template, and an experiment-log row.
+4. Visually check buildings, roads, vehicles, and street furniture before copying the verified CSV row into `docs/experiment_log.csv`.
+
+The notebook downloads model files at runtime. Do not commit weights, caches, input images, generated images, or comparison panels; keep them under the Git-ignored `outputs/ic_light/` directory. The M3 Check-in 1 result is a documented limitation: it achieved a golden-hour appearance but changed scene details, so it is not treated as structure-preserving.
+
 ### Troubleshooting
 | Error | Fix |
 |---|---|

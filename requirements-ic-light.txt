@@ -1,0 +1,15 @@
+# Dedicated environment for Member 3's IC-Light experiment.
+# Install a CUDA-compatible torch/torchvision build separately for the selected GPU.
+# These are the PyTorch-only subset of the official IC-Light requirements.
+# The notebook calls the model directly, so it does not install the unused Gradio UI
+# or its legacy protobuf pin, which conflicts with current Colab TensorFlow packages.
+diffusers==0.27.2
+transformers==4.36.2
+# diffusers 0.27.2 imports cached_download, removed in newer hub releases.
+huggingface-hub==0.20.3
+accelerate==0.27.2
+opencv-python
+safetensors
+pillow==10.2.0
+einops
+peft==0.7.1
