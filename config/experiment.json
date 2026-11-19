@@ -1,0 +1,11 @@
+{
+  "experiment_id": "berkeley_site01_trial01",
+  "source_image": "data/raw/site01_YYYY.png",
+  "crop_resolution": [512, 512],
+  "horizontal_fov_degrees": 90,
+  "yaw_angles_degrees": [0, 60, 120, 180, 240, 300],
+  "pitch_degrees": 0,
+  "seed": 42,
+  "prompt": "Realistic city street at warm golden hour, natural soft sunlight, preserve original buildings, roads, vehicles and layout",
+  "notes": "Six horizontal crops cover the horizon but not the complete sky/ground of a 360-degree panorama. Use identical input crops for every method."
+}

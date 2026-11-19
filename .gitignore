@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.ipynb_checkpoints/
+# Do not commit source imagery or generated imagery by default.
+data/raw/
+data/crops/
+data/depth/
+outputs/*
+!outputs/README.md
+# Model weights and caches
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+models/
