@@ -9,7 +9,7 @@ data/raw/
 data/crops/
 data/depth/
 outputs/*
-!outputs/README.md
+!outputs/.gitkeep
 # Model weights and caches
 *.safetensors
 *.ckpt
