@@ -5,9 +5,6 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 # Do not commit source imagery or generated imagery by default.
-data/raw/
-data/crops/
-data/depth/
 outputs/*
 !outputs/.gitkeep
 # Model weights and caches

@@ -1,11 +1,23 @@
 {
   "experiment_id": "berkeley_site01_trial01",
-  "source_image": "data/raw/site01_YYYY.png",
-  "crop_resolution": [512, 512],
-  "horizontal_fov_degrees": 90,
-  "yaw_angles_degrees": [0, 60, 120, 180, 240, 300],
-  "pitch_degrees": 0,
   "seed": 42,
   "prompt": "Realistic city street at warm golden hour, natural soft sunlight, preserve original buildings, roads, vehicles and layout",
-  "notes": "Six horizontal crops cover the horizon but not the complete sky/ground of a 360-degree panorama. Use identical input crops for every method."
+  "notes": "Six horizontal crops cover the horizon but not the complete sky/ground of a 360-degree panorama. Use identical input crops for every method.",
+  "download": {
+    "max_timestamps": 1,
+    "zoom": 3,
+    "outdir": "data/raw",
+    "manifest": "data/source_manifest.csv",
+    "spots": {
+      "shattuck_downtown": [37.87, -122.2681]
+    }
+  },
+  "crop": {
+    "input_dir": "data/raw",
+    "output_dir": "data/crops",
+    "size": 512,
+    "fov_degrees": 90,
+    "yaw_angles_degrees": [0, 60, 120, 180, 240, 300],
+    "pitch_degrees": 0
+  }
 }

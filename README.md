@@ -8,7 +8,7 @@ Team process, task board, schedule and the Check-in 1 template are in [docs/TEAM
 ```
 Chronos-View/
 ├── config/
-│   └── experiment.json        # Shared experiment settings
+│   └── experiment.json        # Shared settings for downloading and cropping
 ├── data/                      # Inputs (raw/, crops/, depth/ are Git-ignored)
 │   ├── raw/                   # Licensed source panoramas
 │   ├── crops/<image_id>/      # Six horizontal views: view_000.png … view_300.png
@@ -20,6 +20,7 @@ Chronos-View/
 ├── notebooks/                 # Model experiments (controlnet.ipynb, ic_light.ipynb)
 ├── outputs/                   # Results, Git-ignored (baseline/, controlnet/, ic_light/)
 ├── src/
+│   ├── download_streetview.py # Street View panoramas (current + past years) → data/raw/
 │   ├── crop_panorama.py       # Panorama → six perspective crops
 │   ├── depth.py               # Depth Anything V2 depth estimation
 │   ├── color_grade.py         # Warm-tone color grading baseline
@@ -35,56 +36,98 @@ Chronos-View/
 - Member 3: IC-Light experiment.
 - Member 4: Simple warm-tone baseline, evaluations, stitching investigation and check-in integration.
 
-## Quick start
-Use Python 3.10 or 3.11 (choose one common minor version with the team).
+## How to run
+
+Run every command from the project root (the `Chronos-View/` folder). The examples use the image ID
+`telegraph_bancroft_2025-03`; replace it with your own image ID.
+
+### Step 1: Set up the environment (once)
+Use Python 3.10 or 3.11 (agree on one version as a team).
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate             # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+source .venv/bin/activate            # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -r requirements-base.txt
-python src/crop_panorama.py --input data/raw/site01_YYYY.png --outdir data/crops/site01_YYYY
-python src/color_grade.py --input data/crops/site01_YYYY/view_000.png --output outputs/baseline/site01_YYYY/view_000.png
-python src/evaluate.py --original data/crops/site01_YYYY/view_000.png --output outputs/baseline/site01_YYYY/view_000.png
 ```
 
-For optional local depth estimation:
+**macOS only:** the Street View downloader needs two system libraries. Install them once with [Homebrew](https://brew.sh):
 ```bash
-python -m pip install -r requirements-depth.txt
-python src/depth.py --input data/crops/site01_YYYY/view_000.png --output data/depth/site01_YYYY/view_000.png
+brew install inih brotli
 ```
 
-## Data (`data/`)
-- Place licensed source panoramic imagery in `data/raw/` (ignored by Git).
-- Do not distribute copyrighted/terms-restricted panoramas via the repository.
-- Use `data/source_manifest.csv` with one entry per image: `image_id,source_url,creator,license,attribution,capture_date,location,notes`.
-- Crops: `data/crops/<image_id>/view_000.png`, `view_060.png`, ..., `view_300.png`.
-- Depth: `data/depth/<image_id>/view_000.png`, etc.
-- Every model compares the exact same crop at the exact same resolution.
-- For legal sharing, use only images your group is permitted to copy, process and show, with attribution.
+Activate the environment (`source .venv/bin/activate`) every time you open a new terminal.
 
-## Outputs (`outputs/`)
-- `outputs/ic_light/<image_id>/view_000.png`
-- `outputs/controlnet/<image_id>/view_000.png`
-- `outputs/baseline/<image_id>/view_000.png`
-- `outputs/comparison.png`
+### Step 2: Download panoramas
+Downloads the newest Street View panorama at each spot plus older captures from earlier years.
+Images are saved to `data/raw/<spot>_<YYYY-MM>.jpg`, and each one gets a row in `data/source_manifest.csv`.
 
-Outputs are Git-ignored by default. For check-in, store permitted figures in presentation materials with attribution.
-Record generation parameters in your pull-request description and in `docs/experiment_log.csv`.
+Settings live in the `"download"` section of [config/experiment.json](config/experiment.json). Edit it to change
+the spots or how many timestamps to download:
 
-## Model notebooks (`notebooks/`)
-- **Member 2:** create `controlnet.ipynb` for Depth Anything V2 + `StableDiffusionControlNetImg2ImgPipeline`.
-  Model: https://huggingface.co/lllyasviel/sd-controlnet-depth — Docs: https://huggingface.co/docs/diffusers/api/pipelines/controlnet
-- **Member 3:** create `ic_light.ipynb` or a wrapper for the original IC-Light demo (https://github.com/lllyasviel/IC-Light).
-  Important: this model is trained for foreground relighting and might fail for outdoor whole-street scenes. Do not claim preservation until visually verified.
+```json
+"download": {
+  "max_timestamps": 3,
+  "zoom": 3,
+  "outdir": "data/raw",
+  "manifest": "data/source_manifest.csv",
+  "spots": {
+    "telegraph_bancroft": [37.8688, -122.2589],
+    "shattuck_downtown": [37.87, -122.2681]
+  }
+}
+```
 
-Use a Colab GPU or a suitable local GPU. Store model weights in the runtime or cache, not in this repository.
-Output PNG files go into the local `outputs/` folder or an access-controlled team shared folder, provided their license allows reuse.
+Then run:
+```bash
+# See which years are available, without downloading anything
+python src/download_streetview.py --dry-run
 
-## Important boundaries
-- The six horizontal views are NOT a complete 360-degree panorama. Additional vertical views or a different stitching strategy is necessary for the sky/ground.
-- The baseline is simple warm color grading; it does not create new physical shadows.
-- Use imagery only under terms that permit your planned analysis and presentations. Google Map Tiles API documentation restricts copying, bulk downloading, and independent display/reuse of imagery. Consider properly attributed Mapillary imagery, and verify whether it supports the locations and years you need.
-- The model notebooks are work assignments, not finished implementations; integrate them after testing official repositories.
+# Download everything set in the config
+python src/download_streetview.py
+```
+
+Command-line options override the config for a one-off run:
+
+| Option | Meaning |
+|---|---|
+| `--max-timestamps N` | Max captures per spot, newest first, including the current one |
+| `--zoom Z` | Resolution: 3 = 4096×2048, 4 = 8192×4096 |
+| `--spot NAME LAT LON` | Download this spot instead of the config's spots (repeat for several) |
+| `--config PATH` | Use a different config file |
+| `--overwrite` | Re-download images that already exist |
+| `--dry-run` | Only list captures, download nothing |
+
+Using an image from another source (e.g. Mapillary)? Save it as `data/raw/<image_id>.jpg` and add its row to
+`data/source_manifest.csv` by hand. It must be a 2:1 equirectangular panorama.
+
+### Step 3: Crop each panorama into six views
+```bash
+python src/crop_panorama.py
+```
+Crops every image in `data/raw/` into `data/crops/<image_id>/view_000.png` … `view_300.png` (512×512, one every 60°),
+where `<image_id>` is the file name without `.jpg`. These crops are the shared input for every method.
+
+Images that already have crops are skipped, so you can re-run it after downloading more.
+
+Crop settings (folders, size, field of view, view angles, pitch) live in the `"crop"` section of
+[config/experiment.json](config/experiment.json). Command-line options override them for a one-off run:
+
+| Option | Meaning |
+|---|---|
+| `--overwrite` | Re-crop images that already have crops |
+| `--input PATH` | Crop only this one panorama |
+| `--size N` | Crop size in pixels |
+
+### TO DO
+Steps for depth maps, relighting (baseline, ControlNet, IC-Light), evaluation and comparison images are still in progress. This section will be updated soon.
+
+### Troubleshooting
+| Error | Fix |
+|---|---|
+| `Library not loaded: .../libINIReader...` or `.../libbrotlidec...` | macOS: `brew install inih brotli` |
+| `CERTIFICATE_VERIFY_FAILED` | Already handled inside `download_streetview.py`. For other scripts, run `pip install certifi` and prefix the command with `SSL_CERT_FILE=$(python -c "import certifi; print(certifi.where())")` |
+| `Expected an approximately 2:1 equirectangular image` | The input to `crop_panorama.py` isn't a full 360° panorama |
+
 
 ## Shared resources
 - Cropping: https://github.com/sunset1995/py360convert
@@ -95,5 +138,3 @@ Output PNG files go into the local `outputs/` folder or an access-controlled tea
 - Mapillary licensing: https://help.mapillary.com/hc/en-us/articles/115001770409-CC-BY-SA-license-for-open-data
 - Google Map Tiles API terms: https://developers.google.com/maps/documentation/tile/policies
 
-## Check-in 1
-By Nov 24: one real licensed input, six crops, depth map, IC-Light test, ControlNet test, color baseline, and documented decision. A failed method with useful analysis is still a result. See the template in [docs/TEAM.md](docs/TEAM.md#check-in-1-template).
