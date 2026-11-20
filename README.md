@@ -25,7 +25,8 @@ Chronos-View/
 │   ├── depth.py               # Depth Anything V2 depth estimation
 │   ├── color_grade.py         # Warm-tone color grading baseline
 │   ├── contact_sheet.py       # Side-by-side comparison panel
-│   └── evaluate.py            # Compare original vs. output images
+│   ├── evaluate.py            # Compare original vs. output images (Lab, edge F1, SSIM)
+│   └── seam_blend.py          # Stitch six views to a band, measure/blend overlap seams
 ├── requirements-base.txt      # Core dependencies
 └── requirements-depth.txt     # Extra dependencies for depth estimation
 ```
@@ -118,8 +119,45 @@ Crop settings (folders, size, field of view, view angles, pitch) live in the `"c
 | `--input PATH` | Crop only this one panorama |
 | `--size N` | Crop size in pixels |
 
+### Step 4: Warm-tone baseline (Member 4)
+A fixed warm per-channel gain + mild saturation boost, no diffusion. Geometry is untouched, so it is the reference for "lighting changed, structure didn't".
+```bash
+python src/color_grade.py --input-dir data/crops/<image_id> --output-dir outputs/baseline/<image_id> --log
+# or a single view
+python src/color_grade.py --input data/crops/<image_id>/view_000.png --output outputs/baseline/<image_id>/view_000.png
+```
+`--log` appends a row per view to `docs/experiment_log.csv`.
+
+### Step 5: Evaluate outputs
+Install the extra dependency once: `python -m pip install -r requirements-evaluation.txt`.
+```bash
+python src/evaluate.py --original data/crops/<image_id>/view_000.png \
+    --output outputs/baseline/<image_id>/view_000.png outputs/controlnet/<image_id>/view_000.png \
+    --labels Baseline ControlNet --csv outputs/eval.csv
+```
+Reports, per output: Lab mean shift and warmth shift (a*+b*), Canny edge F1 (exact and with `--tol` pixel tolerance), luminance SSIM, mean luminance change and gradient ratio (below 1 = lost detail, above 1 = added texture). Original and output must be the same size. These are diagnostics only: they cannot tell a hallucinated object from a legitimate lighting change, so always inspect the images.
+
+Example (baseline, `shattuck_downtown_2025-03/view_000`): warmth shift +9.1, edge F1 0.99, SSIM 0.998, gradient ratio 1.02, i.e. colour moved and structure did not.
+
+### Step 6: Comparison panel
+```bash
+python src/contact_sheet.py --images data/crops/<id>/view_000.png outputs/baseline/<id>/view_000.png \
+    --labels Original Baseline --output outputs/comparison.png
+```
+Add IC-Light and ControlNet outputs to `--images`/`--labels` once available.
+
+### Step 7: Stitching / seam investigation
+Re-projects the six views onto a horizon band (35 deg half-height, not a full 360 sphere) and measures how well neighbouring views agree in their 30 deg overlaps.
+```bash
+python src/seam_blend.py --views data/crops/<image_id> --output-dir outputs/seams/original_<image_id>
+python src/seam_blend.py --views outputs/baseline/<image_id> --output-dir outputs/seams/baseline_<image_id>
+```
+Writes `band_hard_seams.png`, `band_feather_blend.png` and `seam_report.json` (`mean_overlap_lab_diff`, lower is better). Run it on every method's six views and compare against the original's value, which is the floor caused by resampling alone.
+
+Findings so far (`shattuck_downtown_2025-03`): originals 2.01, global colour-grade baseline 2.12. A global grade keeps the views consistent and feather blending is visually seamless. Methods that relight each view independently (ControlNet, IC-Light) are expected to score higher; this is still to be measured when their six-view outputs exist.
+
 ### TO DO
-Steps for depth maps, relighting (baseline, ControlNet, IC-Light), evaluation and comparison images are still in progress. This section will be updated soon.
+Depth maps and the ControlNet / IC-Light run instructions are still in progress (Members 2 and 3).
 
 ### Troubleshooting
 | Error | Fix |

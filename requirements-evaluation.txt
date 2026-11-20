@@ -1,0 +1,2 @@
+-r requirements-base.txt
+scikit-image>=0.21

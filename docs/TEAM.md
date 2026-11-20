@@ -48,7 +48,7 @@ Project overview, setup, and data/output layout are in the [README](../README.md
 - [ ] Open PR `feat/ic-light` with reproducible notebook or commands.
 
 ### Member 4 — Baseline + comparison
-- [ ] Run `src/color_grade.py` on shared view_000.
+- [x] Run `src/color_grade.py` on shared view_000.
 - [ ] Generate a side-by-side panel with `src/contact_sheet.py` once other results are available.
 - [ ] Run `src/evaluate.py` for original/baseline and all output images.
 - [ ] Visually document object shape changes, edge failures, and lighting differences.
